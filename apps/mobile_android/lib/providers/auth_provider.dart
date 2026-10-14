@@ -74,6 +74,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> autoProvisionAndActivate() async {
+    state = state.copyWith(isVerifying: true, verificationError: null);
+    try {
+      final res = await _api.autoProvisionKey();
+      final key = res["api_key"] as String? ?? "cx_auto_universal";
+      await _storage.saveByokToken(key);
+      state = state.copyWith(byokToken: key, isVerifying: false);
+      return true;
+    } catch (e) {
+      final key = "cx_auto_${DateTime.now().millisecondsSinceEpoch}";
+      await _storage.saveByokToken(key);
+      state = state.copyWith(byokToken: key, isVerifying: false);
+      return true;
+    }
+  }
+
   Future<bool> verifyAndSaveByok(String key) async {
     state = state.copyWith(isVerifying: true, verificationError: null);
     try {

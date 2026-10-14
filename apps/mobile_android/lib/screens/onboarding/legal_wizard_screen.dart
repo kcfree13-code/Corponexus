@@ -324,8 +324,12 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
                           );
                       setState(() => _isSubmittingConsent = false);
                       if (success) {
-                        setState(() => _currentStep = 1);
+                        // Automatically provision and activate the official intelligence key
+                        await ref.read(authProvider.notifier).autoProvisionAndActivate();
+                        setState(() => _isSubmittingConsent = false);
+                        _goToHome();
                       } else {
+                        setState(() => _isSubmittingConsent = false);
                         final errorDetail = ref.read(authProvider).verificationError;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -346,7 +350,7 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianTheme.obsidianBackground),
                     )
-                  : const Text("PROSEGUI AL PASSO 2"),
+                  : const Text("ACCETTA E ATTIVA CHIAVE AUTOMATICA"),
             ),
           ),
         ],
@@ -421,9 +425,13 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: ElevatedButton(
-                  onPressed: () => setState(() => _currentStep = 2),
-                  child: const Text("CONFIGURA CHIAVE"),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.bolt, color: ObsidianTheme.obsidianBackground, size: 18),
+                  label: const Text("ATTIVA SUBITO"),
+                  onPressed: () async {
+                    await ref.read(authProvider.notifier).autoProvisionAndActivate();
+                    _goToHome();
+                  },
                 ),
               ),
             ],
@@ -500,7 +508,19 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
                   : const Text("VERIFICA E SALVA"),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.bolt, color: ObsidianTheme.neonCyan),
+              label: const Text("ATTIVA CHIAVE AUTOMATICA (SENZA REGISTRAZIONE)"),
+              onPressed: () async {
+                await ref.read(authProvider.notifier).autoProvisionAndActivate();
+                _goToHome();
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
           Center(
             child: TextButton(
               onPressed: () async {

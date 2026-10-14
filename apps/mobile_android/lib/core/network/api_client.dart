@@ -57,6 +57,11 @@ class ApiClient {
     return response.data;
   }
 
+  Future<Map<String, dynamic>> autoProvisionKey() async {
+    final response = await dio.post("/api/v1/auth/auto-provision-key");
+    return response.data;
+  }
+
   Future<Map<String, dynamic>> verifyApiKey({
     required String provider,
     required String apiKey,
