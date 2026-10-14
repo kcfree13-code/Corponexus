@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: corponexus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: corponexus
+    ports:
+      - "5434:5432"
+    volumes:
+      - corponexus_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d corponexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: corponexus-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@db:5432/corponexus
+      - TERMS_VERSION=v1.0-2026-10
+      - SEC_USER_AGENT=CorpNexus CorporateIntelligence/1.0 (compliance@corponexus.org)
+    volumes:
+      - ./apps/backend/app:/app/app
+
+volumes:
+  corponexus_pgdata:
