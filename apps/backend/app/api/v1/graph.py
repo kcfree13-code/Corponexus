@@ -41,8 +41,16 @@ async def get_entity_graph(
     res = await db.execute(stmt)
     node = res.scalars().first()
 
-    # If absent and API key provided, attempt live 1st degree fetch
-    if not node and x_api_key:
+    # If absent and is US/SEC company, ingest live for free from official SEC EDGAR
+    if not node and entity_id.startswith("company:us:"):
+        parts = entity_id.split(":")
+        if len(parts) >= 3:
+            cik = parts[2]
+            ingestion = IngestionService(db)
+            node = await ingestion.ingest_sec_edgar_company(cik)
+
+    # If absent and API key provided, attempt live 1st degree fetch via OpenCorporates
+    if not node and x_api_key and not x_api_key.startswith("cx_"):
         parts = entity_id.split(":")
         if len(parts) >= 3 and parts[0] == "company":
             jurisdiction = parts[1]
@@ -112,6 +120,16 @@ async def refresh_entity_live(
 
     jurisdiction = parts[1]
     company_num = parts[2]
+
+    if jurisdiction == "us":
+        ingestion = IngestionService(db)
+        refreshed_node = await ingestion.ingest_sec_edgar_company(company_num)
+        if not refreshed_node:
+            raise HTTPException(
+                status_code=502,
+                detail="Impossibile recuperare i dati aggiornati dal registro ufficiale SEC EDGAR."
+            )
+        return await get_entity_graph(entity_id=refreshed_node.id, degrees=1, x_api_key=None, db=db)
 
     connector = OpenCorporatesConnector(api_token=x_api_key)
     raw_comp = await connector.get_company_details(jurisdiction, company_num)

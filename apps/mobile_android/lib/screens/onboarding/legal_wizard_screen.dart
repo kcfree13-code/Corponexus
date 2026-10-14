@@ -414,7 +414,30 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
+          // OpenStreetMap / SEC Clarification Info Box
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: ObsidianTheme.surfaceGlassHigh,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: ObsidianTheme.neonGreen.withOpacity(0.4)),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.check_circle_outline, color: ObsidianTheme.neonGreen, size: 20),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Nota Open Data: I servizi OpenStreetMap (geocodifica Nominatim e mappe CartoDB Dark) e SEC EDGAR operano in modalità open access conforme e NON richiedono alcuna API Key.",
+                    style: TextStyle(color: ObsidianTheme.textPrimary, fontSize: 12, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           Row(
             children: [
               Expanded(
@@ -458,8 +481,8 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
           ),
           const SizedBox(height: 8),
           const Text(
-            "Inserisci la tua API Key. Verrà cifrata localmente in flutter_secure_storage e utilizzata solo per le tue interrogazioni live.",
-            style: TextStyle(fontSize: 13, color: ObsidianTheme.textMuted),
+            "Inserisci la tua API Key OpenCorporates (opzionale). OpenStreetMap, le mappe CartoDB e SEC EDGAR funzionano già in modalità aperta senza alcuna chiave. Se non hai una chiave OpenCorporates, puoi attivare quella automatica o proseguire in sola lettura.",
+            style: TextStyle(fontSize: 13, color: ObsidianTheme.textMuted, height: 1.4),
           ),
           const SizedBox(height: 20),
           TextField(

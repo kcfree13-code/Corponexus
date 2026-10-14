@@ -163,6 +163,21 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
       font-weight: 600;
       cursor: pointer;
     }
+    .quick-chip {
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      color: var(--text-primary);
+      padding: 3px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+    .quick-chip:hover {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
 
     /* Tab Switcher */
     .tabs-bar {
@@ -304,9 +319,26 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
   <main>
     <!-- Search Bar -->
     <div class="search-panel">
-      <input type="text" id="searchInput" class="search-input" placeholder="Cerca nel database certificato (es. Nexus Tech, Mario Rossi, Global Holdings)..." value="Nexus Tech" />
+      <input type="text" id="searchInput" class="search-input" placeholder="Cerca azienda o amministratore (es. Ferrari, Eni, Apple, Barilla)..." value="Ferrari" onkeydown="if(event.key==='Enter') executeSearch()" />
       <button class="search-btn" onclick="executeSearch()">CERCA</button>
     </div>
+
+    <!-- Quick Search Chips -->
+    <div style="margin: 8px 0 12px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+      <span style="color: var(--text-muted); font-size: 11px;">Ricerche rapide:</span>
+      <span class="quick-chip" onclick="quickSearch('Ferrari')">⚡ Ferrari</span>
+      <span class="quick-chip" onclick="quickSearch('Apple')">⚡ Apple</span>
+      <span class="quick-chip" onclick="quickSearch('Eni')">⚡ Eni</span>
+      <span class="quick-chip" onclick="quickSearch('Stellantis')">⚡ Stellantis</span>
+      <span class="quick-chip" onclick="quickSearch('Leonardo')">⚡ Leonardo</span>
+      <span class="quick-chip" onclick="quickSearch('Barilla')">⚡ Barilla</span>
+      <span class="quick-chip" onclick="quickSearch('Ferrero')">⚡ Ferrero</span>
+      <span class="quick-chip" onclick="quickSearch('TIM')">⚡ TIM</span>
+      <span class="quick-chip" onclick="quickSearch('John Elkann')">⚡ John Elkann</span>
+    </div>
+
+    <!-- Floating Search Results Container -->
+    <div id="searchResultsBox" style="display: none; margin-bottom: 14px; background: rgba(18,24,38,0.95); border: 1px solid var(--neon-cyan); border-radius: 8px; padding: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);"></div>
 
     <!-- Tabs Navigation -->
     <div class="tabs-bar">
@@ -613,30 +645,74 @@ WEB_CONSOLE_HTML = """<!DOCTYPE html>
       }
     }
 
-    // Search Trigger
+    // Quick Search Trigger
+    function quickSearch(q) {
+      document.getElementById('searchInput').value = q;
+      executeSearch();
+    }
+
+    function selectEntity(id) {
+      loadGraph(id);
+      loadDossier(id);
+      switchTab('tab-graph');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    }
+
+    // Search Trigger with Visual Results Box
     async function executeSearch() {
       const q = document.getElementById('searchInput').value.trim();
+      const resultsBox = document.getElementById('searchResultsBox');
       if (!q) return;
+      resultsBox.style.display = 'block';
+      resultsBox.innerHTML = '<div style="color: var(--text-muted); font-size: 12px;">Ricerca in corso sul database certificato e SEC EDGAR...</div>';
+
       try {
         const res = await fetch(`/api/v1/search?q=${encodeURIComponent(q)}`);
         const data = await res.json();
         if (data.results && data.results.length > 0) {
-          const first = data.results[0];
-          loadGraph(first.id);
-          switchTab('tab-graph');
-          document.querySelectorAll('.tab-btn')[0].classList.add('active');
+          let html = `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 12px; font-weight: bold; color: var(--neon-cyan);">Risultati Trovati (${data.results.length}):</span>
+            <button onclick="document.getElementById('searchResultsBox').style.display='none'" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 11px;">Chiudi ✕</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto;">`;
+
+          data.results.forEach(r => {
+            const isComp = r.node_type === 'company';
+            const icon = isComp ? '🏢' : '👤';
+            html += `
+              <div onclick="selectEntity('${r.id}')" style="cursor: pointer; padding: 8px 12px; border-radius: 6px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center;" onmouseover="this.style.borderColor='var(--neon-cyan)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+                <div>
+                  <div style="font-weight: bold; font-size: 13px; color: #fff;">${icon} ${r.name}</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">${r.id} • ${r.source_publisher || 'Registro Ufficiale'}</div>
+                </div>
+                <div style="color: var(--neon-cyan); font-size: 12px; font-weight: 600;">Esplora &rarr;</div>
+              </div>
+            `;
+          });
+          html += '</div>';
+          resultsBox.innerHTML = html;
+
+          // Also load the first result automatically
+          loadGraph(data.results[0].id);
+          loadDossier(data.results[0].id);
         } else {
-          alert("Nessuna entità trovata con questa chiave di ricerca nel database locale.");
+          resultsBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="color: var(--neon-amber); font-size: 12px;">Nessuna entità trovata per "${q}". Prova con una delle ricerche rapide sopra.</span>
+              <button onclick="document.getElementById('searchResultsBox').style.display='none'" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 11px;">Chiudi ✕</button>
+            </div>
+          `;
         }
       } catch (e) {
-        alert("Errore ricerca: " + e.message);
+        resultsBox.innerHTML = `<div style="color: var(--alert-red); font-size: 12px;">Errore ricerca: ${e.message}</div>`;
       }
     }
 
     // Initialize Default View
     window.addEventListener('DOMContentLoaded', () => {
-      loadGraph('company:it:01234567890');
-      loadDossier('company:it:01234567890');
+      loadGraph('company:it:00159560366');
+      loadDossier('company:it:00159560366');
     });
   </script>
 </body>

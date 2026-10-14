@@ -19,6 +19,7 @@ from app.schemas import (
     ItalianContractSchema,
     SourceCitationSchema,
 )
+from app.services.ingestion import IngestionService
 
 router = APIRouter(prefix="/company", tags=["Company Intelligence Dossier"])
 
@@ -48,6 +49,17 @@ async def get_company_dossier(
     )
     res = await db.execute(stmt)
     node = res.scalars().first()
+
+    if not node and company_id.startswith("company:us:"):
+        parts = company_id.split(":")
+        if len(parts) >= 3:
+            cik = parts[2]
+            ingestion = IngestionService(db)
+            node = await ingestion.ingest_sec_edgar_company(cik)
+            if node:
+                # Re-query with all relationships loaded
+                res = await db.execute(stmt)
+                node = res.scalars().first()
 
     if not node:
         raise HTTPException(

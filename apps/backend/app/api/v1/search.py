@@ -75,51 +75,60 @@ async def search_entities(
         for node in db_nodes
     ]
 
-    # If no local results, search SEC EDGAR official live index (Ferrari, Eni, Apple, Stellantis, etc.)
-    if not items:
+    # Also search SEC EDGAR official live index (10,000+ public companies)
+    if len(items) < 15:
         tickers = await _get_sec_tickers()
         q_clean = q.strip().lower()
         matched = []
+        existing_names = {node.name.lower() for node in db_nodes}
+        existing_ids = {node.id for node in db_nodes}
+
         for v in tickers.values():
             title = v.get("title", "")
             ticker = v.get("ticker", "")
             if q_clean in title.lower() or q_clean == ticker.lower():
-                matched.append(v)
-                if len(matched) >= 15:
-                    break
+                cik = str(v.get("cik_str", "")).zfill(10)
+                ent_id = f"company:us:{cik}"
+                if ent_id not in existing_ids and title.lower() not in existing_names:
+                    matched.append((ent_id, title, ticker))
+                    if len(items) + len(matched) >= 15:
+                        break
 
-        for c in matched:
-            cik = str(c.get("cik_str", "")).zfill(10)
+        for ent_id, title, ticker in matched:
             items.append(
                 SearchItem(
-                    id=f"company:us:{cik}",
+                    id=ent_id,
                     node_type="company",
-                    name=c.get("title", "").title(),
+                    name=title.title(),
                     jurisdiction="us",
-                    company_number=c.get("ticker", cik),
+                    company_number=ticker,
                     status="active",
                     source_publisher="SEC EDGAR (Indice Ufficiale Depositato)"
                 )
             )
 
-    # If OpenCorporates token is provided, also query OpenCorporates
-    if not items and x_api_key and not x_api_key.startswith("cx_"):
-        connector = OpenCorporatesConnector(api_token=x_api_key)
+    # If OpenCorporates token is provided (or server default configured), also query OpenCorporates
+    from app.core.config import settings
+    active_oc_token = x_api_key if (x_api_key and not x_api_key.startswith("cx_")) else settings.OPENCORPORATES_DEFAULT_TOKEN
+    if len(items) < 5 and active_oc_token:
+        connector = OpenCorporatesConnector(api_token=active_oc_token)
         ext_comps = await connector.search_companies(query=q, jurisdiction=jurisdiction)
         for c in ext_comps:
             juris = c.get("jurisdiction_code", "")
             comp_num = str(c.get("company_number", ""))
-            items.append(
-                SearchItem(
-                    id=f"company:{juris}:{comp_num}",
-                    node_type="company",
-                    name=c.get("name", ""),
-                    jurisdiction=juris,
-                    company_number=comp_num,
-                    status=c.get("current_status"),
-                    source_publisher="OpenCorporates (Live Result)"
+            ent_id = f"company:{juris}:{comp_num}"
+            if ent_id not in {i.id for i in items}:
+                items.append(
+                    SearchItem(
+                        id=ent_id,
+                        node_type="company",
+                        name=c.get("name", ""),
+                        jurisdiction=juris,
+                        company_number=comp_num,
+                        status=c.get("current_status"),
+                        source_publisher="OpenCorporates (Live Result)"
+                    )
                 )
-            )
 
     return SearchResponse(
         query=q,

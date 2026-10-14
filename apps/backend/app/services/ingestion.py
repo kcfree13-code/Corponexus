@@ -17,6 +17,8 @@ from app.connectors.opencorporates import OpenCorporatesConnector
 from app.connectors.sec_edgar import SecEdgarConnector
 from app.connectors.nominatim import NominatimConnector
 from app.connectors.anac import AnacConnector
+from app.core.config import settings
+import httpx
 
 
 def utc_now():
@@ -225,6 +227,113 @@ class IngestionService:
                 edge.is_active = is_active
                 edge.last_fetched_at = now
                 edge.source_citation_id = citation.id
+
+        await self.db.commit()
+        return node
+
+    async def ingest_sec_edgar_company(self, cik: str) -> Optional[VerifiedNode]:
+        """
+        Fetches official submission metadata from SEC EDGAR,
+        geocodes the headquarters via Nominatim,
+        fetches 5-year certified annual revenues from SEC XBRL,
+        and saves everything into PostgreSQL VerifiedNode + NodeFinancials.
+        100% Free, Zero-Inference, Official Public Registry.
+        """
+        clean_cik = cik.strip().lstrip("0").zfill(10)
+        entity_id = f"company:us:{clean_cik}"
+
+        # 1. Check if node already exists
+        stmt = (
+            select(VerifiedNode)
+            .where(VerifiedNode.id == entity_id)
+            .options(selectinload(VerifiedNode.source_citation))
+        )
+        res = await self.db.execute(stmt)
+        node = res.scalars().first()
+        if node:
+            return node
+
+        # 2. Query SEC EDGAR Submissions API
+        url = f"https://data.sec.gov/submissions/CIK{clean_cik}.json"
+        headers = {"User-Agent": settings.SEC_USER_AGENT}
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(url, headers=headers)
+                if resp.status_code != 200:
+                    return None
+                data = resp.json()
+        except Exception:
+            return None
+
+        name = data.get("name", f"SEC Entity {clean_cik}").title()
+        tickers = data.get("tickers", [])
+        ticker = tickers[0] if tickers else clean_cik
+
+        # 3. Construct Business Address
+        b_addr = data.get("addresses", {}).get("business", {})
+        addr_parts = [
+            b_addr.get("street1"),
+            b_addr.get("street2"),
+            b_addr.get("city"),
+            b_addr.get("stateOrCountryDescription") or b_addr.get("stateOrCountry"),
+            b_addr.get("zipCode")
+        ]
+        full_address = ", ".join([p for p in addr_parts if p and str(p).strip()]) or None
+
+        # 4. Geocode using OpenStreetMap Nominatim
+        lat, lon = None, None
+        if full_address:
+            geocoder = NominatimConnector()
+            geo_res = await geocoder.geocode_address(full_address, self.db)
+            if geo_res:
+                lat, lon, _ = geo_res
+
+        # 5. Create Source Citation
+        sec_url = f"https://www.sec.gov/edgar/browse/?CIK={clean_cik}"
+        citation = SourceCitation(
+            source_publisher="SEC EDGAR",
+            source_url=sec_url,
+            filing_id=clean_cik,
+            retrieved_at=utc_now(),
+            raw_response_snippet=json.dumps({"name": name, "ticker": ticker, "cik": clean_cik})
+        )
+        self.db.add(citation)
+        await self.db.flush()
+
+        # 6. Create VerifiedNode
+        now = utc_now()
+        node = VerifiedNode(
+            id=entity_id,
+            node_type="company",
+            name=name,
+            jurisdiction="us",
+            company_number=ticker,
+            status="active",
+            registered_address_in_full=full_address,
+            latitude=lat,
+            longitude=lon,
+            last_fetched_at=now,
+            source_citation_id=citation.id,
+        )
+        self.db.add(node)
+        await self.db.flush()
+
+        # 7. Fetch 5-year revenues from SEC XBRL
+        try:
+            sec_conn = SecEdgarConnector()
+            revenues = await sec_conn.get_annual_revenues_5yr(clean_cik)
+            for rev in revenues:
+                fin = NodeFinancials(
+                    node_id=entity_id,
+                    fiscal_year=rev["fiscal_year"],
+                    annual_revenue=rev["annual_revenue"],
+                    currency=rev.get("currency", "USD"),
+                    source_citation_id=citation.id,
+                )
+                self.db.add(fin)
+            await self.db.flush()
+        except Exception:
+            pass
 
         await self.db.commit()
         return node

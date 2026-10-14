@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     SEC_USER_AGENT: str = "CorpNexus CorporateIntelligence/1.0 (contact: compliance@corponexus.org)"
     NOMINATIM_USER_AGENT: str = "CorpNexus Geocoder/1.0 (contact: info@corponexus.org)"
     OPENCORPORATES_API_BASE: str = "https://api.opencorporates.com/v0.4"
+    OPENCORPORATES_DEFAULT_TOKEN: str = ""
     OPENOWNERSHIP_API_BASE: str = "https://register.openownership.org/api/v1"
     INSEE_SIRENE_API_BASE: str = "https://api.insee.fr/entreprises/sirene/V3.11"
     WIKIDATA_SPARQL_ENDPOINT: str = "https://query.wikidata.org/sparql"

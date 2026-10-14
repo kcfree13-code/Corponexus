@@ -20,23 +20,66 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
+  bool _hasSearched = false;
+  String? _searchError;
 
   void _performSearch(String query) async {
-    if (query.trim().length < 2) {
-      setState(() => _searchResults = []);
+    final cleanQ = query.trim();
+    if (cleanQ.length < 2) {
+      setState(() {
+        _searchResults = [];
+        _hasSearched = false;
+        _searchError = "Inserisci almeno 2 caratteri per avviare la ricerca.";
+      });
       return;
     }
-    setState(() => _isSearching = true);
+    setState(() {
+      _isSearching = true;
+      _searchError = null;
+      _hasSearched = true;
+    });
     try {
       final api = ref.read(apiClientProvider);
-      final res = await api.search(query.trim());
+      final res = await api.search(cleanQ);
       setState(() {
         _searchResults = List<Map<String, dynamic>>.from(res['results'] ?? []);
         _isSearching = false;
       });
     } catch (e) {
-      setState(() => _isSearching = false);
+      setState(() {
+        _isSearching = false;
+        _searchError = "Impossibile completare la ricerca: verifica la connessione al server.";
+      });
     }
+  }
+
+  Widget _buildQuickSearchChip(String label) {
+    return InkWell(
+      onTap: () {
+        _searchController.text = label;
+        _performSearch(label);
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: ObsidianTheme.surfaceGlassHigh,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: ObsidianTheme.borderSubtle),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.bolt, size: 12, color: ObsidianTheme.neonCyan),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(color: ObsidianTheme.textPrimary, fontSize: 11, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -68,7 +111,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
               ),
               const SizedBox(height: 4),
               const Text(
-                "Database Permanente Certificato & Integrazione Ufficiale",
+                "Database Permanente Certificato & Indice Ufficiale SEC EDGAR",
                 style: TextStyle(color: ObsidianTheme.textMuted, fontSize: 12),
               ),
               const SizedBox(height: 16),
@@ -79,7 +122,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 style: const TextStyle(color: ObsidianTheme.textPrimary),
                 onSubmitted: _performSearch,
                 decoration: InputDecoration(
-                  hintText: "Cerca azienda o amministratore (es. Nexus Tech, Mario Rossi)...",
+                  hintText: "Cerca azienda o amministratore (es. Ferrari, Eni, Apple)...",
                   hintStyle: const TextStyle(color: ObsidianTheme.textDim, fontSize: 13),
                   filled: true,
                   fillColor: ObsidianTheme.surfaceGlass,
@@ -104,12 +147,43 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                 ),
               ),
 
-              // Search Results (if any)
+              // Quick Search Chips
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _buildQuickSearchChip("Ferrari"),
+                  _buildQuickSearchChip("Apple"),
+                  _buildQuickSearchChip("Eni"),
+                  _buildQuickSearchChip("Stellantis"),
+                  _buildQuickSearchChip("Leonardo"),
+                  _buildQuickSearchChip("Barilla"),
+                  _buildQuickSearchChip("Ferrero"),
+                  _buildQuickSearchChip("TIM"),
+                  _buildQuickSearchChip("John Elkann"),
+                  _buildQuickSearchChip("Mario Rossi"),
+                ],
+              ),
+
+              // Search Results
               if (_searchResults.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                const Text(
-                  "Risultati Trovati:",
-                  style: TextStyle(color: ObsidianTheme.neonCyan, fontWeight: FontWeight.bold, fontSize: 13),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Risultati Trovati (${_searchResults.length}):",
+                      style: const TextStyle(color: ObsidianTheme.neonCyan, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() {
+                        _searchResults = [];
+                        _hasSearched = false;
+                      }),
+                      child: const Text("Chiudi", style: TextStyle(color: ObsidianTheme.textMuted, fontSize: 11)),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 ListView.separated(
@@ -120,6 +194,7 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                   itemBuilder: (ctx, index) {
                     final item = _searchResults[index];
                     final isComp = item['node_type'] == 'company';
+                    final pub = item['source_publisher'] ?? 'Registro';
                     return ObsidianCard(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       borderColor: isComp ? ObsidianTheme.neonCyan : ObsidianTheme.neonAmber,
@@ -150,18 +225,58 @@ class _HomeDashboardScreenState extends ConsumerState<HomeDashboardScreen> {
                                     fontSize: 14,
                                   ),
                                 ),
+                                const SizedBox(height: 2),
                                 Text(
-                                  "${item['id']} • ${item['status'] ?? 'N/D'}",
+                                  "${item['id']} • $pub",
                                   style: const TextStyle(color: ObsidianTheme.textMuted, fontSize: 11),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right, color: ObsidianTheme.textMuted),
+                          const Icon(Icons.chevron_right, color: ObsidianTheme.neonCyan),
                         ],
                       ),
                     );
                   },
+                ),
+              ] else if (_hasSearched && !_isSearching && _searchError == null) ...[
+                const SizedBox(height: 16),
+                ObsidianCard(
+                  borderColor: ObsidianTheme.borderSubtle,
+                  child: Column(
+                    children: [
+                      const Icon(Icons.search_off, color: ObsidianTheme.textMuted, size: 36),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Nessun risultato trovato per '${_searchController.text.trim()}'.",
+                        style: const TextStyle(color: ObsidianTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        "La ricerca interroga il database certificato permanente e l'indice SEC EDGAR. Prova a cliccare su uno dei suggerimenti rapidi sopra o verifica la corretta digitazione.",
+                        style: TextStyle(color: ObsidianTheme.textMuted, fontSize: 11),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (_searchError != null) ...[
+                const SizedBox(height: 16),
+                ObsidianCard(
+                  borderColor: ObsidianTheme.alertRed,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: ObsidianTheme.alertRed, size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _searchError!,
+                          style: const TextStyle(color: ObsidianTheme.alertRed, fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
 

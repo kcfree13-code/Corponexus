@@ -203,6 +203,132 @@ async def seed_database(
                 longitude=7.6828,
                 source_citation_id=cit_oc.id
             ),
+            # 13. Barilla G. e R. Fratelli S.p.A.
+            VerifiedNode(
+                id="company:it:01654010345",
+                node_type="company",
+                name="Barilla G. e R. Fratelli S.p.A.",
+                jurisdiction="it",
+                company_number="01654010345",
+                status="active",
+                incorporation_date="1877-09-28",
+                registered_address_in_full="Via Mantova 166, 43122 Parma, Italia",
+                latitude=44.8145,
+                longitude=10.3391,
+                source_citation_id=cit_oc.id
+            ),
+            # 14. Ferrero Commerciale Italia S.r.l.
+            VerifiedNode(
+                id="company:it:03623900048",
+                node_type="company",
+                name="Ferrero Commerciale Italia S.r.l.",
+                jurisdiction="it",
+                company_number="03623900048",
+                status="active",
+                incorporation_date="1946-05-14",
+                registered_address_in_full="Piazzale Pietro Ferrero 1, 12051 Alba, Cuneo, Italia",
+                latitude=44.7009,
+                longitude=8.0353,
+                source_citation_id=cit_oc.id
+            ),
+            # 15. Assicurazioni Generali S.p.A.
+            VerifiedNode(
+                id="company:it:00079760328",
+                node_type="company",
+                name="Assicurazioni Generali S.p.A.",
+                jurisdiction="it",
+                company_number="00079760328",
+                status="active",
+                incorporation_date="1831-12-26",
+                registered_address_in_full="Piazza Duca degli Abruzzi 2, 34132 Trieste, Italia",
+                latitude=45.6515,
+                longitude=13.7718,
+                source_citation_id=cit_oc.id
+            ),
+            # 16. Pirelli & C. S.p.A.
+            VerifiedNode(
+                id="company:it:00860340157",
+                node_type="company",
+                name="Pirelli & C. S.p.A.",
+                jurisdiction="it",
+                company_number="00860340157",
+                status="active",
+                incorporation_date="1872-01-28",
+                registered_address_in_full="Viale Piero e Alberto Pirelli 25, 20126 Milano, Italia",
+                latitude=45.5132,
+                longitude=9.2133,
+                source_citation_id=cit_oc.id
+            ),
+            # 17. Davide Campari-Milano N.V.
+            VerifiedNode(
+                id="company:it:06672120967",
+                node_type="company",
+                name="Davide Campari-Milano N.V.",
+                jurisdiction="it",
+                company_number="06672120967",
+                status="active",
+                incorporation_date="1860-01-01",
+                registered_address_in_full="Via Franco Sacchetti 20, 20099 Sesto San Giovanni, Milano, Italia",
+                latitude=45.5348,
+                longitude=9.2294,
+                source_citation_id=cit_oc.id
+            ),
+            # 18. Poste Italiane S.p.A.
+            VerifiedNode(
+                id="company:it:01114601006",
+                node_type="company",
+                name="Poste Italiane S.p.A.",
+                jurisdiction="it",
+                company_number="01114601006",
+                status="active",
+                incorporation_date="1862-05-05",
+                registered_address_in_full="Viale Europa 190, 00144 Roma, Italia",
+                latitude=41.8306,
+                longitude=12.4721,
+                source_citation_id=cit_oc.id
+            ),
+            # 19. Enel S.p.A.
+            VerifiedNode(
+                id="company:it:00811720580",
+                node_type="company",
+                name="Enel S.p.A.",
+                jurisdiction="it",
+                company_number="00811720580",
+                status="active",
+                incorporation_date="1962-11-27",
+                registered_address_in_full="Viale Regina Margherita 137, 00198 Roma, Italia",
+                latitude=41.9168,
+                longitude=12.4998,
+                source_citation_id=cit_oc.id
+            ),
+            # 20. Mediobanca S.p.A.
+            VerifiedNode(
+                id="company:it:00714490158",
+                node_type="company",
+                name="Mediobanca S.p.A.",
+                jurisdiction="it",
+                company_number="00714490158",
+                status="active",
+                incorporation_date="1946-04-10",
+                registered_address_in_full="Piazzetta Enrico Cuccia 1, 20121 Milano, Italia",
+                latitude=45.4678,
+                longitude=9.1895,
+                source_citation_id=cit_oc.id
+            ),
+            # 21. Prysmian S.p.A.
+            VerifiedNode(
+                id="company:it:04866320965",
+                node_type="company",
+                name="Prysmian S.p.A.",
+                jurisdiction="it",
+                company_number="04866320965",
+                status="active",
+                incorporation_date="1879-01-01",
+                registered_address_in_full="Via Chiese 6, 20126 Milano, Italia",
+                latitude=45.5165,
+                longitude=9.2173,
+                source_citation_id=cit_oc.id
+            ),
         ]
 
         for node in nodes_data:

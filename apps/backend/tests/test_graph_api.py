@@ -72,3 +72,13 @@ async def test_search_entities(client: AsyncClient, seed_data):
     data = response.json()
     assert data["total"] >= 1
     assert data["results"][0]["name"] == "Nexus Tech S.p.A."
+
+
+@pytest.mark.asyncio
+async def test_search_sec_index(client: AsyncClient, seed_data):
+    response = await client.get("/api/v1/search?q=Apple")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] >= 1
+    names = [r["name"] for r in data["results"]]
+    assert any("Apple" in n for n in names)
