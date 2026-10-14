@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.database import get_db
+from app.core.database import get_db, init_db
 from app.models import (
     SourceCitation,
     VerifiedNode,
@@ -20,6 +20,7 @@ async def seed_database(db: AsyncSession = Depends(get_db)):
     Popola il database PostgreSQL (locale o su Railway) con entità aziendali ed esponenti certificati
     per consentire test immediati senza consumare quote API esterne.
     """
+    await init_db()
     res = await db.execute(select(VerifiedNode).where(VerifiedNode.id == "company:it:01234567890"))
     if res.scalars().first():
         return {
