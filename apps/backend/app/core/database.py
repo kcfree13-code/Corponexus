@@ -19,8 +19,9 @@ connect_args = {}
 if "sslmode" in query_params or any(c in parsed.netloc for c in ["neon.tech", "vercel-storage.com", "supabase", "rlwy.net", "aws"]):
     connect_args["ssl"] = True
 
-# Strip 'sslmode' from query string since asyncpg does not accept sslmode as a URL parameter
-clean_params = {k: v for k, v in query_params.items() if k != "sslmode"}
+# Strip parameters from psycopg/libpq query string that asyncpg does not accept (e.g. sslmode, channel_binding)
+unsupported_asyncpg_params = {"sslmode", "channel_binding", "endpoint"}
+clean_params = {k: v for k, v in query_params.items() if k not in unsupported_asyncpg_params}
 clean_query = urllib.parse.urlencode(clean_params, doseq=True)
 db_url = urllib.parse.urlunparse(parsed._replace(query=clean_query))
 
