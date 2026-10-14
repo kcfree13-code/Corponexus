@@ -1,6 +1,6 @@
 class AppConstants {
-  // Production / Local Backend URL (10.0.2.2 points to host on Android emulator; localhost on Web/Desktop)
-  static const String defaultBackendUrl = "http://10.0.2.2:8000";
+  // Production Railway Backend URL
+  static const String defaultBackendUrl = "https://corponexus-production.up.railway.app";
   static const String termsVersion = "v1.0-2026-10";
 
   // Legal Clauses - Card 1 (Titolarità API Key & Termini Fornitori)

@@ -19,10 +19,14 @@ class ApiClient {
       ),
     );
 
-    // Interceptor to inject BYOK API Key if available
+    // Interceptor to inject BYOK API Key and dynamic Backend URL if configured
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          final customUrl = await storageService.getBackendUrl();
+          if (customUrl != null && customUrl.trim().isNotEmpty) {
+            options.baseUrl = customUrl.trim();
+          }
           final token = await storageService.getByokToken();
           if (token != null && token.isNotEmpty) {
             options.headers["X-API-Key"] = token;

@@ -41,6 +41,62 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
     );
   }
 
+  void _showServerSettings(BuildContext context) async {
+    final storage = ref.read(secureStorageProvider);
+    final currentUrl = await storage.getBackendUrl() ?? AppConstants.defaultBackendUrl;
+    final controller = TextEditingController(text: currentUrl);
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ObsidianTheme.surfaceCard,
+        title: const Text("Configurazione Server", style: TextStyle(color: ObsidianTheme.neonCyan, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "URL Backend CorpNexus (FastAPI):",
+              style: TextStyle(color: ObsidianTheme.textMuted, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: controller,
+              style: const TextStyle(color: ObsidianTheme.textPrimary, fontSize: 13),
+              decoration: const InputDecoration(
+                filled: true,
+                fillColor: ObsidianTheme.surfaceGlass,
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.cloud_outlined, color: ObsidianTheme.neonCyan),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              controller.text = AppConstants.defaultBackendUrl;
+              await storage.saveBackendUrl(AppConstants.defaultBackendUrl);
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text("Ripristina Default", style: TextStyle(color: ObsidianTheme.neonAmber)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newUrl = controller.text.trim();
+              if (newUrl.isNotEmpty) {
+                await storage.saveBackendUrl(newUrl);
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+            },
+            child: const Text("Salva"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -49,6 +105,13 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
       appBar: AppBar(
         title: const Text("CORPNEXUS ONBOARDING"),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: ObsidianTheme.neonCyan),
+            tooltip: "Configurazione Server",
+            onPressed: () => _showServerSettings(context),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -263,9 +326,14 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
                       if (success) {
                         setState(() => _currentStep = 1);
                       } else {
+                        final errorDetail = ref.read(authProvider).verificationError;
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text("Errore durante la registrazione del consenso sul server."),
+                          SnackBar(
+                            content: Text(
+                              errorDetail != null
+                                  ? "Errore registrazione consenso: $errorDetail"
+                                  : "Errore durante la registrazione del consenso sul server.",
+                            ),
                             backgroundColor: ObsidianTheme.alertRed,
                           ),
                         );
