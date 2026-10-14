@@ -37,6 +37,10 @@ app.add_middleware(
 app.include_router(api_v1_router, prefix=settings.API_V1_STR)
 
 
+from fastapi import Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from app.web_console import WEB_CONSOLE_HTML
+
 @app.get("/health", tags=["Health"])
 async def health_check():
     db_status = "connected"
@@ -55,10 +59,26 @@ async def health_check():
     }
 
 
-@app.get("/", tags=["Root"])
-async def root():
-    return {
-        "message": "Benvenuto in CorpNexus API - Corporate Intelligence System",
-        "docs": "/docs",
-        "health": "/health"
-    }
+@app.get("/", tags=["Root"], response_class=HTMLResponse)
+async def root(request: Request):
+    """
+    Serves the Cyber-Forensic Web Intelligence Console for browser users.
+    If explicitly requested as application/json, returns API metadata.
+    """
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept and "text/html" not in accept:
+        return JSONResponse(
+            content={
+                "message": "Benvenuto in CorpNexus API - Corporate Intelligence System",
+                "docs": "/docs",
+                "health": "/health",
+                "explorer": "/explorer"
+            }
+        )
+    return HTMLResponse(content=WEB_CONSOLE_HTML)
+
+
+@app.get("/explorer", tags=["Web Console"], response_class=HTMLResponse)
+@app.get("/app", tags=["Web Console"], response_class=HTMLResponse)
+async def web_console():
+    return HTMLResponse(content=WEB_CONSOLE_HTML)
