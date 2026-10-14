@@ -50,7 +50,7 @@ class _LegalWizardScreenState extends ConsumerState<LegalWizardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: ObsidianTheme.surfaceCard,
+        backgroundColor: ObsidianTheme.surfaceGlass,
         title: const Text("Configurazione Server", style: TextStyle(color: ObsidianTheme.neonCyan, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
