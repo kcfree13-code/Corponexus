@@ -45,7 +45,7 @@ async def health_check():
         async with async_engine.connect() as conn:
             await conn.execute(text("SELECT 1"))
     except Exception as e:
-        db_status = f"connecting ({type(e).__name__})"
+        db_status = f"connecting ({type(e).__name__}: {str(e)})"
 
     return {
         "status": "ok",
